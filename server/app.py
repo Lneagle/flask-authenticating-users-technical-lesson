@@ -1,4 +1,4 @@
-!/usr/bin/env python3
+#!/usr/bin/env python3
 
 from flask import Flask, make_response, request, session
 from flask_migrate import Migrate
@@ -19,6 +19,37 @@ db.init_app(app)
 api = Api(app)
 
 # Define routes
+class Login(Resource):
+    def get(self):
+        user = User.query.filter(
+            User.username == request.get_json()['username']
+        ).first()
+
+        if user:
+            session['user_id'] = user.id
+            return UserSchema().dump(user)
+        else:
+            return {'message': 'Invalid login'}, 401
+
+    def post(self):
+        pass
+
+class CheckSession(Resource):
+    def get(self):
+        user = User.query.filter(User.id == session.get('user_id')).first()
+        if user:
+            return UserSchema().dump(user)
+        else:
+            return {'message': '401: Not Authorized'}, 401
+        
+class Logout(Resource):
+    def delete(self):
+        session['user_id'] = None
+        return {'message': '204: No Content'}, 204
+
+api.add_resource(Login, '/login')
+api.add_resource(CheckSession, '/check_session')
+api.add_resource(Logout, '/logout')
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
